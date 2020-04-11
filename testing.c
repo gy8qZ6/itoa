@@ -21,18 +21,21 @@ int itoa_recursive_01() {
     
 int itoa_recursive_02() {
     n = 0xffffffff;
+    memset(buf, 0xaa, 21);
     _assert(strcmp(itoa_recursive(n, buf), "4294967295") == 0);
     return 0;
 }
     
 int itoa_recursive_03() {
     n = 0;
+    memset(buf, 0xaa, 21);
     _assert(strcmp(itoa_recursive(n, buf), "") == 0);
     return 0;
 }
 
 int itoa_recursive_04() {
     n = 1;
+    memset(buf, 0xaa, 21);
     _assert(strcmp(itoa_recursive(n, buf), "1") == 0);
     return 0;
 }
