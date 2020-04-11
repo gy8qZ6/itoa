@@ -1,0 +1,4 @@
+A few implementations and benchmarks of the formerly known itoa function that's long been superseded by sprintf.
+Out of curiosity.
+
+TODO: clean up testing.c to use function pointers to run identical test cases for each implementation, instead of having quadrupled code.
