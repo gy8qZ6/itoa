@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
+#include <execinfo.h>
 
 #include "itoa.h"
 
@@ -11,397 +12,162 @@ clock_t begin, end;
 
 #define FAIL() printf("\nfailure in %s() line %d\n", __func__, __LINE__)
 #define _assert(test) do { if (!(test)) { FAIL(); return 1; } } while(0)
-#define _verify(test) do { int r=test(); tests_run++; if(r) return r; } while(0)
+#define _verify(test, func) do { int r=test(func); tests_run++; if(r) return r; } while(0)
 
-int itoa_copy_01() {
+/* 
+Idea:   each test case is copied for every implementation we are testing,
+        using function pointers we could cut the duplication of that
+        code, e.g. just have one itoa_test_01() function that takes as
+        an argument a pointer to the implemented function it should
+        run the testcase on
+*/
+
+#define TEST_CASE_DESC(func) do { \
+        char **r = backtrace_symbols((void*)&func, 1); \
+        char *f_name = *r; \
+        f_name = strchr(f_name, '(') + 1; \
+        *strchr(f_name, '+') = 0; \
+        printf("Test Case: %s testing implementation %s()\n",__func__, f_name); } while (0);
+
+int itoa_01(char* (*func)(uint32_t, char*)) {
+    TEST_CASE_DESC(func);
     n = 1337;
-    _assert(strcmp(itoa_copy(n, buf), "1337") == 0);
+    _assert(strcmp(func(n, buf), "1337") == 0);
     memset(buf, 0xaa, 21);
-    _assert(strcmp(itoa_copy(n, buf), "1337") == 0);
+    _assert(strcmp(func(n, buf), "1337") == 0);
     return 0;
 }
     
-int itoa_copy_02() {
+int itoa_02(char* (*func)(uint32_t, char*)) {
+    TEST_CASE_DESC(func);
     n = 0xffffffff;
     memset(buf, 0xaa, 21);
-    _assert(strcmp(itoa_copy(n, buf), "4294967295") == 0);
+    _assert(strcmp(func(n, buf), "4294967295") == 0);
     return 0;
 }
     
-int itoa_copy_03() {
+int itoa_03(char* (*func)(uint32_t, char*)) {
+    TEST_CASE_DESC(func);
     n = 0;
     memset(buf, 0xaa, 21);
-    _assert(strcmp(itoa_copy(n, buf), "") == 0);
+    _assert(strcmp(func(n, buf), "") == 0);
     return 0;
 }
 
-int itoa_copy_04() {
+int itoa_04(char* (*func)(uint32_t, char*)) {
+    TEST_CASE_DESC(func);
     n = 1;
     memset(buf, 0xaa, 21);
-    _assert(strcmp(itoa_copy(n, buf), "1") == 0);
-    return 0;
-}
-int itoa_recursive_01() {
-    n = 1337;
-    _assert(strcmp(itoa_recursive(n, buf), "1337") == 0);
-    memset(buf, 0xaa, 21);
-    _assert(strcmp(itoa_recursive(n, buf), "1337") == 0);
-    return 0;
-}
-    
-int itoa_recursive_02() {
-    n = 0xffffffff;
-    memset(buf, 0xaa, 21);
-    _assert(strcmp(itoa_recursive(n, buf), "4294967295") == 0);
-    return 0;
-}
-    
-int itoa_recursive_03() {
-    n = 0;
-    memset(buf, 0xaa, 21);
-    _assert(strcmp(itoa_recursive(n, buf), "") == 0);
+    _assert(strcmp(func(n, buf), "1") == 0);
     return 0;
 }
 
-int itoa_recursive_04() {
-    n = 1;
-    memset(buf, 0xaa, 21);
-    _assert(strcmp(itoa_recursive(n, buf), "1") == 0);
-    return 0;
-}
-
-int itoa_reverse_01() {
-    n = 1337;
-    _assert(strcmp(itoa_reverse(n, buf), "1337") == 0);
-    memset(buf, 0xaa, 21);
-    _assert(strcmp(itoa_reverse(n, buf), "1337") == 0);
-    return 0;
-}
-    
-int itoa_reverse_02() {
-    n = 0xffffffff;
-    memset(buf, 0xaa, 21);
-    _assert(strcmp(itoa_reverse(n, buf), "4294967295") == 0);
-    return 0;
-}
-    
-int itoa_reverse_03() {
-    n = 0;
-    memset(buf, 0xaa, 21);
-    _assert(strcmp(itoa_reverse(n, buf), "") == 0);
-    return 0;
-}
-
-int itoa_reverse_04() {
-    n = 1;
-    memset(buf, 0xaa, 21);
-    _assert(strcmp(itoa_reverse(n, buf), "1") == 0);
-    return 0;
-}
-
-int itoa_copy_time01() {
+//int itoa_time_01(char* (*func)(uint32_t, char*)) {
+int itoa_time_01(char* (*func)(uint32_t, char*)) {
+    TEST_CASE_DESC(func);
     n = 1;
     begin = clock();
     /* here, do your time-consuming job */
     //memset(buf, 0xaa, 21);
     for (uint32_t i = 0; i < 1000*1000; i++)
-        itoa_copy(n, buf);
+        func(n, buf);
 
     end = clock();
     double time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
-    printf("%s: %f\n", __func__, time_spent);
+    printf("\033[1A\033[65C %s: %f\n", __func__, time_spent);
     return 0;
 }
-int itoa_copy_time02() {
+
+int itoa_time_02(char* (*func)(uint32_t, char*)) {
+    TEST_CASE_DESC(func);
     n = 333;
     begin = clock();
     /* here, do your time-consuming job */
     //memset(buf, 0xaa, 21);
     for (uint32_t i = 0; i < 1000*1000; i++)
-        itoa_copy(n, buf);
+        func(n, buf);
 
     end = clock();
     double time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
-    printf("%s: %f\n", __func__, time_spent);
+    printf("\033[1A\033[65C %s: %f\n", __func__, time_spent);
     return 0;
 }
-int itoa_copy_time03() {
+
+int itoa_time_03(char* (*func)(uint32_t, char*)) {
+    TEST_CASE_DESC(func);
     n = 666666;
     begin = clock();
     /* here, do your time-consuming job */
     //memset(buf, 0xaa, 21);
     for (uint32_t i = 0; i < 1000*1000; i++)
-        itoa_copy(n, buf);
+        func(n, buf);
 
     end = clock();
     double time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
-    printf("%s: %f\n", __func__, time_spent);
+    printf("\033[1A\033[65C %s: %f\n", __func__, time_spent);
     return 0;
 }
-int itoa_copy_time04() {
+
+int itoa_time_04(char* (*func)(uint32_t, char*)) {
+    TEST_CASE_DESC(func);
     n = 1010101010;
     begin = clock();
     /* here, do your time-consuming job */
     //memset(buf, 0xaa, 21);
     for (uint32_t i = 0; i < 1000*1000; i++)
-        itoa_copy(n, buf);
+        func(n, buf);
 
     end = clock();
     double time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
-    printf("%s: %f\n", __func__, time_spent);
+    printf("\033[1A\033[65C %s: %f\n", __func__, time_spent);
     return 0;
 }
-int itoa_copy_time05() {
+
+int itoa_time_05(char* (*func)(uint32_t, char*)) {
+    TEST_CASE_DESC(func);
     n = 0xffffffff;
     begin = clock();
     /* here, do your time-consuming job */
     //memset(buf, 0xaa, 21);
     for (uint32_t i = 0; i < 1000*1000; i++)
-        itoa_copy(n, buf);
+        func(n, buf);
 
     end = clock();
     double time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
-    printf("%s: %f\n", __func__, time_spent);
-    return 0;
-}
-int itoa_reverse_time01() {
-    n = 1;
-    begin = clock();
-    /* here, do your time-consuming job */
-    //memset(buf, 0xaa, 21);
-    for (uint32_t i = 0; i < 1000*1000; i++)
-        itoa_reverse(n, buf);
-
-    end = clock();
-    double time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
-    printf("%s: %f\n", __func__, time_spent);
-    return 0;
-}
-int itoa_reverse_time02() {
-    n = 333;
-    begin = clock();
-    /* here, do your time-consuming job */
-    //memset(buf, 0xaa, 21);
-    for (uint32_t i = 0; i < 1000*1000; i++)
-        itoa_reverse(n, buf);
-
-    end = clock();
-    double time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
-    printf("%s: %f\n", __func__, time_spent);
-    return 0;
-}
-int itoa_reverse_time03() {
-    n = 666666;
-    begin = clock();
-    /* here, do your time-consuming job */
-    //memset(buf, 0xaa, 21);
-    for (uint32_t i = 0; i < 1000*1000; i++)
-        itoa_reverse(n, buf);
-
-    end = clock();
-    double time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
-    printf("%s: %f\n", __func__, time_spent);
-    return 0;
-}
-int itoa_reverse_time04() {
-    n = 1010101010;
-    begin = clock();
-    /* here, do your time-consuming job */
-    //memset(buf, 0xaa, 21);
-    for (uint32_t i = 0; i < 1000*1000; i++)
-        itoa_reverse(n, buf);
-
-    end = clock();
-    double time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
-    printf("%s: %f\n", __func__, time_spent);
-    return 0;
-}
-int itoa_reverse_time05() {
-    n = 0xffffffff;
-    begin = clock();
-    /* here, do your time-consuming job */
-    //memset(buf, 0xaa, 21);
-    for (uint32_t i = 0; i < 1000*1000; i++)
-        itoa_reverse(n, buf);
-
-    end = clock();
-    double time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
-    printf("%s: %f\n", __func__, time_spent);
-    return 0;
-}
-
-int itoa_recursive_time01() {
-    n = 1;
-    begin = clock();
-    /* here, do your time-consuming job */
-    //memset(buf, 0xaa, 21);
-    for (uint32_t i = 0; i < 1000*1000; i++)
-        itoa_recursive(n, buf);
-
-    end = clock();
-    double time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
-    printf("%s: %f\n", __func__, time_spent);
-    return 0;
-}
-int itoa_recursive_time02() {
-    n = 333;
-    begin = clock();
-    /* here, do your time-consuming job */
-    //memset(buf, 0xaa, 21);
-    for (uint32_t i = 0; i < 1000*1000; i++)
-        itoa_recursive(n, buf);
-
-    end = clock();
-    double time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
-    printf("%s: %f\n", __func__, time_spent);
-    return 0;
-}
-int itoa_recursive_time03() {
-    n = 666666;
-    begin = clock();
-    /* here, do your time-consuming job */
-    //memset(buf, 0xaa, 21);
-    for (uint32_t i = 0; i < 1000*1000; i++)
-        itoa_recursive(n, buf);
-
-    end = clock();
-    double time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
-    printf("%s: %f\n", __func__, time_spent);
-    return 0;
-}
-int itoa_recursive_time04() {
-    n = 1010101010;
-    begin = clock();
-    /* here, do your time-consuming job */
-    //memset(buf, 0xaa, 21);
-    for (uint32_t i = 0; i < 1000*1000; i++)
-        itoa_recursive(n, buf);
-
-    end = clock();
-    double time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
-    printf("%s: %f\n", __func__, time_spent);
-    return 0;
-}
-int itoa_recursive_time05() {
-    n = 0xffffffff;
-    begin = clock();
-    /* here, do your time-consuming job */
-    //memset(buf, 0xaa, 21);
-    for (uint32_t i = 0; i < 1000*1000; i++)
-        itoa_recursive(n, buf);
-
-    end = clock();
-    double time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
-    printf("%s: %f\n", __func__, time_spent);
-    return 0;
-}
-
-int itoa_sprintf_time01() {
-    n = 1;
-    begin = clock();
-    /* here, do your time-consuming job */
-    //memset(buf, 0xaa, 21);
-    for (uint32_t i = 0; i < 1000*1000; i++)
-        sprintf(buf, "%d", n);
-
-    end = clock();
-    double time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
-    printf("%s: %f\n", __func__, time_spent);
-    return 0;
-}
-
-int itoa_sprintf_time02() {
-    n = 333;
-    begin = clock();
-    /* here, do your time-consuming job */
-    //memset(buf, 0xaa, 21);
-    for (uint32_t i = 0; i < 1000*1000; i++)
-        sprintf(buf, "%d", n);
-
-    end = clock();
-    double time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
-    printf("%s: %f\n", __func__, time_spent);
-    return 0;
-}
-int itoa_sprintf_time03() {
-    n = 666666;
-    begin = clock();
-    /* here, do your time-consuming job */
-    //memset(buf, 0xaa, 21);
-    for (uint32_t i = 0; i < 1000*1000; i++)
-        sprintf(buf, "%d", n);
-
-    end = clock();
-    double time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
-    printf("%s: %f\n", __func__, time_spent);
-    return 0;
-}
-int itoa_sprintf_time04() {
-    n = 1010101010;
-    //n = 0xffffffff;
-    begin = clock();
-    /* here, do your time-consuming job */
-    //memset(buf, 0xaa, 21);
-    for (uint32_t i = 0; i < 1000*1000; i++)
-        sprintf(buf, "%d", n);
-
-    end = clock();
-    double time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
-    printf("%s: %f\n", __func__, time_spent);
-    return 0;
-}
-int itoa_sprintf_time05() {
-    n = 0xffffffff;
-    //n = 1010101010;
-    begin = clock();
-    /* here, do your time-consuming job */
-    //memset(buf, 0xaa, 21);
-    for (uint32_t i = 0; i < 1000*1000; i++)
-        sprintf(buf, "%d", n);
-
-    end = clock();
-    double time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
-    printf("%s: %f\n", __func__, time_spent);
+    printf("\033[1A\033[65C %s: %f\n", __func__, time_spent);
     return 0;
 }
 
 int all_tests() {
-    _verify(itoa_copy_01);
-    _verify(itoa_copy_02);
-    _verify(itoa_copy_03);
-    _verify(itoa_copy_04);
-    _verify(itoa_recursive_01);
-    _verify(itoa_recursive_02);
-    _verify(itoa_recursive_03);
-    _verify(itoa_recursive_04);
-    _verify(itoa_reverse_01);
-    _verify(itoa_reverse_02);
-    _verify(itoa_reverse_03);
-    _verify(itoa_reverse_04);
-    _verify(itoa_recursive_time01);
-    _verify(itoa_reverse_time01);
-    _verify(itoa_copy_time01);
-    _verify(itoa_sprintf_time01);
-    putchar('\n');
-    _verify(itoa_recursive_time02);
-    _verify(itoa_reverse_time02);
-    _verify(itoa_copy_time02);
-    _verify(itoa_sprintf_time02);
-    putchar('\n');
-    _verify(itoa_recursive_time03);
-    _verify(itoa_reverse_time03);
-    _verify(itoa_copy_time03);
-    _verify(itoa_sprintf_time03);
-    putchar('\n');
-    _verify(itoa_recursive_time04);
-    _verify(itoa_reverse_time04);
-    _verify(itoa_copy_time04);
-    _verify(itoa_sprintf_time04);
-    putchar('\n');
-    _verify(itoa_recursive_time05);
-    _verify(itoa_reverse_time05);
-    _verify(itoa_copy_time05);
-    _verify(itoa_sprintf_time05);
+    _verify(itoa_01, itoa_recursive);
+    _verify(itoa_01, itoa_reverse);
+    _verify(itoa_01, itoa_copy);
+    _verify(itoa_02, itoa_recursive);
+    _verify(itoa_02, itoa_reverse);
+    _verify(itoa_02, itoa_copy);
+    _verify(itoa_03, itoa_recursive);
+    _verify(itoa_03, itoa_reverse);
+    _verify(itoa_03, itoa_copy);
+    _verify(itoa_04, itoa_recursive);
+    _verify(itoa_04, itoa_reverse);
+    _verify(itoa_04, itoa_copy);
+
+    _verify(itoa_time_01, itoa_recursive);
+    _verify(itoa_time_01, itoa_reverse);
+    _verify(itoa_time_01, itoa_copy);
+    _verify(itoa_time_01, sprintf);
+    _verify(itoa_time_02, itoa_recursive);
+    _verify(itoa_time_02, itoa_reverse);
+    _verify(itoa_time_02, itoa_copy);
+    _verify(itoa_time_03, itoa_recursive);
+    _verify(itoa_time_03, itoa_reverse);
+    _verify(itoa_time_03, itoa_copy);
+    _verify(itoa_time_04, itoa_recursive);
+    _verify(itoa_time_04, itoa_reverse);
+    _verify(itoa_time_04, itoa_copy);
+    _verify(itoa_time_05, itoa_recursive);
+    _verify(itoa_time_05, itoa_reverse);
+    _verify(itoa_time_05, itoa_copy);
     return 0;
 }
 
