@@ -1,2 +1,2 @@
-A few implementations and benchmarks of the formerly known itoa function that's long been superseded by sprintf.
+A few implementations and benchmarks of the itoa function (which is not really needed because sprintf exists).
 Out of curiosity.
