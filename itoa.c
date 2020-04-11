@@ -18,7 +18,7 @@ char* itoa_recursive(uint32_t i, char *buf)
     // points to byte after the last written char
     *ptr = '\0';
 
-#ifdef DEBUG
+#if DEBUG
     printf("wrapper: i: %u buf: 0x%08x 0x%08x 0x%02x\n", i, &ptr, ptr-1, *(ptr-1));
 #endif
 
@@ -31,7 +31,7 @@ static void _itoa_recursive_worker(uint32_t i, char **buf)
     {
         //**buf = '\0';
         //--*buf;
-#ifdef DEBUG
+#if DEBUG
         printf("i: %u buf: 0x%08x 0x%08x 0x%02x\n", i, buf, *buf, **buf);
 #endif
         return;
@@ -41,7 +41,7 @@ static void _itoa_recursive_worker(uint32_t i, char **buf)
 
     *(*buf)++ = i % 10 | 0x30;
 
-#ifdef DEBUG
+#if DEBUG
     printf("i: %u buf: 0x%08x 0x%08x 0x%02x\n", i, buf, *buf-1, *(*buf-1));
 #endif
     
